@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>back-lesson API · Hujjat</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-light: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --yellow: #facc15;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+      padding: 48px 24px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 { margin: 0 0 8px; font-size: 2.2rem; }
+    header p { margin: 0; color: var(--muted); }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+    section { margin-bottom: 40px; }
+    h2 {
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 8px;
+      margin-top: 0;
+      font-size: 1.5rem;
+    }
+    h3 { margin-top: 24px; }
+    .endpoint {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .method {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      color: #0f172a;
+    }
+    .method.get    { background: var(--blue); }
+    .method.post   { background: var(--green); }
+    .method.put    { background: var(--yellow); }
+    .method.delete { background: var(--red); }
+    .path {
+      font-family: 'Consolas', monospace;
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+    .description {
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    pre {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: 'Consolas', monospace;
+      font-size: 0.9rem;
+    }
+    code { font-family: 'Consolas', monospace; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--accent); font-weight: 600; }
+    .label {
+      display: inline-block;
+      background: var(--panel-light);
+      color: var(--text);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-left: 4px;
+    }
+    .label.required { background: #b91c1c; }
+    .label.optional { background: #475569; }
+    ul { padding-left: 20px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-block;
+      background: var(--panel);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 4px 4px 0 0;
+      border: 1px solid var(--border);
+    }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>back-lesson API</h1>
+    <p>Title + description + image bilan ishlovchi CRUD REST API · Node.js · Express · MongoDB · Cloudinary</p>
+    <div style="margin-top: 16px;">
+      <span class="badge">Base URL: <code>/api/posts</code></span>
+      <span class="badge">Health: <code>/health</code></span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <section>
+      <h2>Umumiy ma'lumot</h2>
+      <p>
+        Bu API <strong>Post</strong> ob'ektlari ustida CRUD amallarini bajaradi. Har bir post
+        <code>title</code>, <code>description</code> va <code>image</code> dan iborat. Rasm yuklanganda u Cloudinary'ga saqlanadi,
+        bazada esa faqat <strong>URL</strong> va <strong>publicId</strong> qoladi.
+      </p>
+      <h3>Cheklovlar</h3>
+      <ul>
+        <li><strong>title</strong>: majburiy, matn, maksimal <strong>120 belgi</strong>.</li>
+        <li><strong>description</strong>: majburiy, matn, maksimal <strong>2000 belgi</strong>.</li>
+        <li><strong>image</strong>: rasm fayl, maksimal <strong>5 MB</strong>. Ruxsat etilgan formatlar: <code>jpeg</code>, <code>png</code>, <code>webp</code>, <code>gif</code>.</li>
+      </ul>
+      <h3>Javob formati</h3>
+      <p>Barcha javoblar JSON. Muvaffaqiyat:</p>
+<pre><code>{ "success": true, "data": { ... } }</code></pre>
+      <p>Xato:</p>
+<pre><code>{ "success": false, "message": "Xato tavsifi", "details": [ ... ] }</code></pre>
+    </section>
+
+    <section>
+      <h2>Post modeli</h2>
+      <table>
+        <thead>
+          <tr><th>Maydon</th><th>Turi</th><th>Tavsif</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>string</td><td>MongoDB ObjectId</td></tr>
+          <tr><td><code>title</code></td><td>string</td><td>Sarlavha (1-120 belgi)</td></tr>
+          <tr><td><code>description</code></td><td>string</td><td>Tavsif (1-2000 belgi)</td></tr>
+          <tr><td><code>imageUrl</code></td><td>string</td><td>Cloudinary'dagi rasmga to'liq URL</td></tr>
+          <tr><td><code>imagePublicId</code></td><td>string</td><td>Cloudinary public ID (rasmni o'chirish uchun)</td></tr>
+          <tr><td><code>createdAt</code></td><td>string (ISO)</td><td>Yaratilgan vaqti</td></tr>
+          <tr><td><code>updatedAt</code></td><td>string (ISO)</td><td>Oxirgi o'zgarish vaqti</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Endpoint'lar</h2>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method post">POST</span>
+          <span class="path">/api/posts</span>
+        </div>
+        <p class="description">Yangi post yaratadi. <code>title</code>, <code>description</code> va <code>image</code> uchchalasi ham majburiy.</p>
+        <h3>Body (<code>multipart/form-data</code>)</h3>
+        <table>
+          <thead><tr><th>Maydon</th><th>Turi</th><th>Cheklov</th></tr></thead>
+          <tbody>
+            <tr><td><code>title</code> <span class="label required">required</span></td><td>text</td><td>1-120 belgi</td></tr>
+            <tr><td><code>description</code> <span class="label required">required</span></td><td>text</td><td>1-2000 belgi</td></tr>
+            <tr><td><code>image</code> <span class="label required">required</span></td><td>file</td><td>≤ 5 MB, image/*</td></tr>
+          </tbody>
+        </table>
+        <h3>cURL misol</h3>
+<pre><code>curl -X POST http://localhost:3002/api/posts \
+  -F "title=Salom dunyo" \
+  -F "description=Bu mening birinchi postim" \
+  -F "image=@./rasm.jpg"</code></pre>
+        <h3>Muvaffaqiyatli javob — <code>201 Created</code></h3>
+<pre><code>{
+  "success": true,
+  "data": {
+    "id": "66f5a1b2c3d4e5f6a7b8c9d0",
+    "title": "Salom dunyo",
+    "description": "Bu mening birinchi postim",
+    "imageUrl": "https://res.cloudinary.com/.../rasm.jpg",
+    "imagePublicId": "back-lesson/abc123",
+    "createdAt": "2026-05-26T10:30:00.000Z",
+    "updatedAt": "2026-05-26T10:30:00.000Z"
+  }
+}</code></pre>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/api/posts</span>
+        </div>
+        <p class="description">Barcha postlarni qaytaradi. Sahifalash (pagination) bilan.</p>
+        <h3>Query parametrlari</h3>
+        <table>
+          <thead><tr><th>Parametr</th><th>Default</th><th>Tavsif</th></tr></thead>
+          <tbody>
+            <tr><td><code>page</code> <span class="label optional">optional</span></td><td>1</td><td>Sahifa raqami</td></tr>
+            <tr><td><code>limit</code> <span class="label optional">optional</span></td><td>20</td><td>Sahifadagi yozuvlar soni (max 100)</td></tr>
+          </tbody>
+        </table>
+        <h3>cURL misol</h3>
+<pre><code>curl http://localhost:3002/api/posts?page=1&limit=10</code></pre>
+        <h3>Javob — <code>200 OK</code></h3>
+<pre><code>{
+  "success": true,
+  "data": [ { "id": "...", "title": "...", ... }, ... ],
+  "meta": { "page": 1, "limit": 10, "total": 42, "pages": 5 }
+}</code></pre>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/api/posts/:id</span>
+        </div>
+        <p class="description">Bitta postni id bo'yicha qaytaradi.</p>
+        <h3>cURL misol</h3>
+<pre><code>curl http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0</code></pre>
+        <h3>Mumkin bo'lgan javoblar</h3>
+        <ul>
+          <li><code>200 OK</code> — post topildi</li>
+          <li><code>400</code> — id formati noto'g'ri (CastError)</li>
+          <li><code>404</code> — post topilmadi</li>
+        </ul>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method put">PUT</span>
+          <span class="method put">PATCH</span>
+          <span class="path">/api/posts/:id</span>
+        </div>
+        <p class="description">Postni yangilaydi (<code>PUT</code> va <code>PATCH</code> ikkalasi ham qo'llab-quvvatlanadi, qisman yangilash uchun <code>PATCH</code> tavsiya etiladi). <code>title</code>, <code>description</code> va <code>image</code> uchchalasi ham ixtiyoriy — kerakligini yuboring.</p>
+        <h3>Body (<code>multipart/form-data</code>)</h3>
+        <table>
+          <thead><tr><th>Maydon</th><th>Turi</th><th>Cheklov</th></tr></thead>
+          <tbody>
+            <tr><td><code>title</code> <span class="label optional">optional</span></td><td>text</td><td>1-120 belgi</td></tr>
+            <tr><td><code>description</code> <span class="label optional">optional</span></td><td>text</td><td>1-2000 belgi</td></tr>
+            <tr><td><code>image</code> <span class="label optional">optional</span></td><td>file</td><td>≤ 5 MB, image/*</td></tr>
+          </tbody>
+        </table>
+        <p>Yangi rasm yuklansa, eski rasm Cloudinary'dan avtomatik o'chiriladi.</p>
+        <h3>cURL misol — faqat title o'zgartirish</h3>
+<pre><code>curl -X PUT http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0 \
+  -F "title=Yangi sarlavha"</code></pre>
+        <h3>cURL misol — description o'zgartirish</h3>
+<pre><code>curl -X PUT http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0 \
+  -F "description=Yangilangan tavsif"</code></pre>
+        <h3>cURL misol — barchasi bilan birga</h3>
+<pre><code>curl -X PUT http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0 \
+  -F "title=Yangi sarlavha" \
+  -F "description=Yangilangan tavsif" \
+  -F "image=@./yangi-rasm.png"</code></pre>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method delete">DELETE</span>
+          <span class="path">/api/posts/:id</span>
+        </div>
+        <p class="description">Postni va u bilan bog'liq rasmni Cloudinary'dan birga o'chiradi.</p>
+        <h3>cURL misol</h3>
+<pre><code>curl -X DELETE http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0</code></pre>
+        <h3>Javob — <code>200 OK</code></h3>
+<pre><code>{ "success": true, "data": { "id": "66f5a1b2c3d4e5f6a7b8c9d0" } }</code></pre>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method get">GET</span>
+          <span class="path">/health</span>
+        </div>
+        <p class="description">Service ishlayotganini tekshirish (uptime monitoring uchun).</p>
+<pre><code>{ "status": "ok", "uptime": 123.45 }</code></pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>Xato kodlari</h2>
+      <table>
+        <thead><tr><th>Status</th><th>Sabab</th></tr></thead>
+        <tbody>
+          <tr><td><code>400</code></td><td>title bo'sh / 120 belgidan oshgan, description bo'sh / 2000 belgidan oshgan, rasm formati noto'g'ri, id formati buzilgan</td></tr>
+          <tr><td><code>400</code> (LIMIT_FILE_SIZE)</td><td>Rasm 5 MB'dan kattaroq</td></tr>
+          <tr><td><code>404</code></td><td>Post topilmadi yoki marshrut yo'q</td></tr>
+          <tr><td><code>500</code></td><td>Server xatosi (Cloudinary upload muvaffaqiyatsiz, DB muammosi va h.k.)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>JavaScript misoli (fetch + FormData)</h2>
+<pre><code>const formData = new FormData();
+formData.append('title', 'Mening postim');
+formData.append('description', 'Postning to\'liq tavsifi');
+formData.append('image', fileInput.files[0]);
+
+const res = await fetch('http://localhost:3002/api/posts', {
+  method: 'POST',
+  body: formData,
+});
+
+const json = await res.json();
+console.log(json);</code></pre>
+      <p style="color: var(--muted);">
+        <strong>Eslatma:</strong> <code>fetch</code> bilan <code>FormData</code> yuborganingizda
+        <code>Content-Type</code> header'ini qo'lda qo'yMANG — brauzer uni boundary bilan birga
+        avtomatik o'rnatadi.
+      </p>
+    </section>
+
+  </div>
+
+  <footer>
+    back-lesson API · Node.js + Express + MongoDB + Cloudinary
+  </footer>
+</body>
+</html>
