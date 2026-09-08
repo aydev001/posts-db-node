@@ -4,357 +4,1409 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>back-lesson API · Hujjat</title>
+  <meta name="description" content="Node.js + Express + MongoDB + Cloudinary asosidagi Post CRUD API hujjati va jonli sinov konsoli." />
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #1e293b;
-      --panel-light: #334155;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
+      --bg: #0b1120;
+      --panel: #131c31;
+      --panel-2: #1b2740;
+      --code-bg: #060b17;
+      --text: #e6edf7;
+      --muted: #93a4bf;
+      --faint: #64748b;
       --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
       --green: #4ade80;
-      --yellow: #facc15;
+      --yellow: #fbbf24;
       --red: #f87171;
+      --purple: #c084fc;
       --blue: #60a5fa;
-      --border: #334155;
+      --border: #24324e;
+      --radius: 10px;
+      --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
     }
+
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
+      font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
-      background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
-      padding: 48px 24px;
-      text-align: center;
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: var(--mono); font-size: 0.92em; }
+    p code, li code, td code, h3 code {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 5px;
+      color: #cfe6ff;
+      white-space: nowrap;
+    }
+
+    /* ---------- Topbar ---------- */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 12px 22px;
+      background: rgba(11, 17, 32, 0.92);
+      backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
-    header h1 { margin: 0 0 8px; font-size: 2.2rem; }
-    header p { margin: 0; color: var(--muted); }
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 32px 24px 64px;
-    }
-    section { margin-bottom: 40px; }
-    h2 {
-      border-bottom: 2px solid var(--accent);
-      padding-bottom: 8px;
-      margin-top: 0;
-      font-size: 1.5rem;
-    }
-    h3 { margin-top: 24px; }
-    .endpoint {
+    .brand { display: flex; align-items: baseline; gap: 9px; font-weight: 700; letter-spacing: -0.2px; }
+    .brand small { color: var(--faint); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.6px; text-transform: uppercase; }
+    .topbar-spacer { flex: 1 1 auto; }
+    .base-url {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 16px;
+      border-radius: 999px;
+      padding: 3px 14px;
     }
-    .endpoint-header {
+    .base-url label { color: var(--faint); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.7px; }
+    .base-url input {
+      background: transparent;
+      border: 0;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      width: 200px;
+      outline: none;
+      padding: 5px 0;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 13px;
+      white-space: nowrap;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
+    .dot.on { background: var(--green); box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18); }
+    .dot.off { background: var(--red); box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18); }
+
+    /* ---------- Layout ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 44px;
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 0 22px 80px;
+    }
+    .sidebar {
+      position: sticky;
+      top: 68px;
+      align-self: start;
+      max-height: calc(100vh - 88px);
+      overflow-y: auto;
+      padding: 28px 0;
+      border-right: 1px solid var(--border);
+    }
+    .sidebar h4 {
+      margin: 22px 0 8px;
+      font-size: 0.7rem;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .sidebar h4:first-child { margin-top: 0; }
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 12px 6px 10px;
+      margin-right: 14px;
+      border-radius: 7px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      border-left: 2px solid transparent;
+    }
+    .sidebar a:hover { background: var(--panel); color: var(--text); text-decoration: none; }
+    .sidebar a.active { background: var(--accent-soft); color: var(--accent); border-left-color: var(--accent); }
+    .sidebar .mini {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: #06101f;
+      flex: none;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    main { padding: 34px 0 0; min-width: 0; }
+
+    .hero { margin-bottom: 48px; }
+    .hero h1 { margin: 0 0 10px; font-size: 2.05rem; letter-spacing: -0.6px; }
+    .hero .lead { margin: 0 0 18px; color: var(--muted); font-size: 1.03rem; max-width: 64ch; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 12px;
+    }
+
+    section { margin-bottom: 58px; scroll-margin-top: 88px; }
+    section > h2 {
+      margin: 0 0 6px;
+      font-size: 1.42rem;
+      letter-spacing: -0.3px;
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
     }
-    .method {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-      color: #0f172a;
-    }
-    .method.get    { background: var(--blue); }
-    .method.post   { background: var(--green); }
-    .method.put    { background: var(--yellow); }
-    .method.delete { background: var(--red); }
-    .path {
-      font-family: 'Consolas', monospace;
-      font-size: 1.05rem;
+    section > h2::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .section-hint { color: var(--muted); margin: 0 0 22px; }
+    h3 { margin: 26px 0 8px; font-size: 1rem; letter-spacing: 0.1px; }
+
+    /* ---------- Steps ---------- */
+    .steps { counter-reset: step; display: grid; gap: 22px; }
+    .step { position: relative; padding-left: 44px; }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
       color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
     }
-    .description {
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-    pre {
-      background: #020617;
+    .step h3 { margin: 0 0 6px; font-size: 1rem; }
+    .step p { margin: 0 0 8px; color: var(--muted); }
+
+    /* ---------- Code ---------- */
+    .code {
+      position: relative;
+      background: var(--code-bg);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px;
+      border-radius: var(--radius);
+      margin: 10px 0;
+    }
+    .code pre {
+      margin: 0;
+      padding: 15px 62px 15px 16px;
       overflow-x: auto;
-      font-family: 'Consolas', monospace;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.62;
+      color: #d7e3f4;
+    }
+    .copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .code:hover .copy, .copy:focus-visible { opacity: 1; }
+    .copy:hover { color: var(--text); border-color: var(--accent); }
+    .copy.done { color: var(--green); border-color: var(--green); opacity: 1; }
+
+    /* ---------- Tabs ---------- */
+    .tabs { display: flex; gap: 2px; margin: 14px 0 0; border-bottom: 1px solid var(--border); }
+    .tabs button {
+      background: none;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: var(--faint);
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 7px 13px;
+      cursor: pointer;
+    }
+    .tabs button:hover { color: var(--text); }
+    .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .pane { display: none; }
+    .pane.active { display: block; }
+
+    /* ---------- Endpoint ---------- */
+    .endpoint {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px 22px;
+      margin-bottom: 20px;
+      scroll-margin-top: 88px;
+    }
+    .endpoint-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .method {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      padding: 4px 9px;
+      border-radius: 5px;
+      color: #06101f;
+    }
+    .method.get { background: var(--blue); }
+    .method.post { background: var(--green); }
+    .method.put { background: var(--yellow); }
+    .method.patch { background: var(--purple); }
+    .method.delete { background: var(--red); }
+    .path { font-family: var(--mono); font-size: 1rem; color: #cfe6ff; word-break: break-all; }
+    .endpoint .desc { color: var(--muted); margin: 10px 0 0; }
+
+    /* ---------- Tables ---------- */
+    .table-wrap { overflow-x: auto; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 430px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--faint); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .tag {
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-left: 5px;
+      white-space: nowrap;
+    }
+    .tag.req { background: rgba(248, 113, 113, 0.16); color: #fca5a5; border: 1px solid rgba(248, 113, 113, 0.35); }
+    .tag.opt { background: rgba(148, 163, 184, 0.14); color: var(--muted); border: 1px solid var(--border); }
+
+    /* ---------- Callout ---------- */
+    .note {
+      display: flex;
+      gap: 11px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: var(--radius);
+      padding: 12px 15px;
+      margin: 14px 0;
+      color: #cbe6fb;
       font-size: 0.9rem;
     }
-    code { font-family: 'Consolas', monospace; }
-    table {
+    .note.warn { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.3); color: #fde3a7; }
+    .note .ico { flex: none; }
+
+    /* ---------- Try it ---------- */
+    .tryit { margin-top: 18px; border: 1px dashed var(--border); border-radius: var(--radius); overflow: hidden; }
+    .tryit-toggle {
       width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0;
-    }
-    th, td {
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    th { color: var(--accent); font-weight: 600; }
-    .label {
-      display: inline-block;
-      background: var(--panel-light);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: var(--panel-2);
+      border: 0;
       color: var(--text);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      margin-left: 4px;
+      font: inherit;
+      font-size: 0.88rem;
+      text-align: left;
+      padding: 10px 15px;
+      cursor: pointer;
     }
-    .label.required { background: #b91c1c; }
-    .label.optional { background: #475569; }
-    ul { padding-left: 20px; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .badge {
-      display: inline-block;
-      background: var(--panel);
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin: 4px 4px 0 0;
+    .tryit-toggle:hover { background: #22304d; }
+    .tryit-toggle .arrow { color: var(--faint); transition: transform 0.18s; display: inline-block; }
+    .tryit.open .tryit-toggle .arrow { transform: rotate(90deg); }
+    .tryit-body { display: none; padding: 16px 15px; border-top: 1px solid var(--border); }
+    .tryit.open .tryit-body { display: block; }
+    .fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+    .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.7px; color: var(--faint); }
+    .field input, .field textarea {
+      background: var(--code-bg);
       border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.83rem;
+      padding: 8px 10px;
+      outline: none;
+      width: 100%;
     }
+    .field input:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 62px; font-family: inherit; }
+    .field.wide { grid-column: 1 / -1; }
+    .field input[type="file"] { font-family: inherit; font-size: 0.8rem; padding: 6px 8px; color: var(--muted); }
+    .tryit-actions { display: flex; align-items: center; gap: 12px; margin-top: 15px; flex-wrap: wrap; }
+    .btn {
+      background: var(--accent);
+      color: #06101f;
+      border: 0;
+      border-radius: 7px;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.87rem;
+      padding: 8px 18px;
+      cursor: pointer;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:disabled { opacity: 0.55; cursor: progress; }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); font-weight: 500; }
+    .btn.ghost:hover { color: var(--text); border-color: var(--accent); }
+    .resp-meta { font-family: var(--mono); font-size: 0.79rem; color: var(--muted); }
+    .resp-meta .ok { color: var(--green); }
+    .resp-meta .bad { color: var(--red); }
+    .tryit-out {
+      display: none;
+      margin: 12px 0 0;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 13px 14px;
+      max-height: 340px;
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 0.81rem;
+      line-height: 1.55;
+      color: #d7e3f4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .tryit-out.show { display: block; }
+
     footer {
-      text-align: center;
-      color: var(--muted);
-      padding: 24px;
       border-top: 1px solid var(--border);
+      color: var(--faint);
       font-size: 0.85rem;
+      padding: 26px 22px;
+      text-align: center;
+    }
+
+    @media (max-width: 940px) {
+      .layout { grid-template-columns: 1fr; gap: 0; }
+      .sidebar {
+        position: static;
+        max-height: none;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+        padding: 14px 0;
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+      }
+      .sidebar h4 { display: none; }
+      .sidebar a { margin-right: 0; white-space: nowrap; border-left: 0; }
+      .sidebar a.active { border-left: 0; }
+      .sidebar .mini { display: none; }
+      .base-url input { width: 145px; }
+      .hero h1 { font-size: 1.65rem; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>back-lesson API</h1>
-    <p>Title + description + image bilan ishlovchi CRUD REST API · Node.js · Express · MongoDB · Cloudinary</p>
-    <div style="margin-top: 16px;">
-      <span class="badge">Base URL: <code>/api/posts</code></span>
-      <span class="badge">Health: <code>/health</code></span>
-    </div>
-  </header>
 
-  <div class="container">
+<div class="topbar">
+  <div class="brand">back-lesson API <small>hujjat</small></div>
+  <div class="topbar-spacer"></div>
+  <div class="base-url">
+    <label for="baseUrl">Base URL</label>
+    <input id="baseUrl" spellcheck="false" autocomplete="off" />
+  </div>
+  <div class="status-pill"><span class="dot" id="healthDot"></span><span id="healthText">tekshirilmoqda…</span></div>
+</div>
 
-    <section>
-      <h2>Umumiy ma'lumot</h2>
-      <p>
-        Bu API <strong>Post</strong> ob'ektlari ustida CRUD amallarini bajaradi. Har bir post
-        <code>title</code>, <code>description</code> va <code>image</code> dan iborat. Rasm yuklanganda u Cloudinary'ga saqlanadi,
-        bazada esa faqat <strong>URL</strong> va <strong>publicId</strong> qoladi.
+<div class="layout">
+
+  <nav class="sidebar" id="sidebar">
+    <h4>Boshlanish</h4>
+    <a href="#boshlash">Tez boshlash</a>
+    <a href="#umumiy">Umumiy qoidalar</a>
+    <a href="#model">Post modeli</a>
+    <h4>Endpointlar</h4>
+    <a href="#list"><span class="mini method get">GET</span> Ro'yxat</a>
+    <a href="#getone"><span class="mini method get">GET</span> Bitta post</a>
+    <a href="#create"><span class="mini method post">POST</span> Yaratish</a>
+    <a href="#update"><span class="mini method put">PUT</span> Yangilash</a>
+    <a href="#remove"><span class="mini method delete">DEL</span> O'chirish</a>
+    <a href="#health"><span class="mini method get">GET</span> Health</a>
+    <h4>Ma'lumotnoma</h4>
+    <a href="#xatolar">Xatolar</a>
+    <a href="#retseptlar">Frontend retseptlari</a>
+    <a href="#env">Muhit o'zgaruvchilari</a>
+    <a href="#tuzilish">Loyiha tuzilishi</a>
+  </nav>
+
+  <main>
+
+    <div class="hero">
+      <h1>back-lesson API hujjati</h1>
+      <p class="lead">
+        <code>title</code> + <code>description</code> + <code>image</code> dan iborat postlar ustida CRUD amallarini
+        bajaruvchi REST API. Rasm Cloudinary'ga yuklanadi, MongoDB'da esa faqat uning havolasi saqlanadi.
       </p>
-      <h3>Cheklovlar</h3>
-      <ul>
-        <li><strong>title</strong>: majburiy, matn, maksimal <strong>120 belgi</strong>.</li>
-        <li><strong>description</strong>: majburiy, matn, maksimal <strong>2000 belgi</strong>.</li>
-        <li><strong>image</strong>: rasm fayl, maksimal <strong>5 MB</strong>. Ruxsat etilgan formatlar: <code>jpeg</code>, <code>png</code>, <code>webp</code>, <code>gif</code>.</li>
-      </ul>
+      <div class="chips">
+        <span class="chip">Node.js + Express</span>
+        <span class="chip">MongoDB / Mongoose</span>
+        <span class="chip">Cloudinary</span>
+        <span class="chip">Multer memory storage</span>
+      </div>
+      <div class="note" style="margin-top: 24px">
+        <span class="ico">⚡</span>
+        <div>
+          Har bir endpoint ostida <b>“Sinab ko'rish”</b> paneli bor — so'rov shu sahifadan to'g'ridan-to'g'ri
+          serverga ketadi, Postman ochish shart emas. Yuqoridagi <b>Base URL</b> ni o'zgartirsangiz, sahifadagi
+          barcha misollar ham o'sha manzilga moslashadi.
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TEZ BOSHLASH ================= -->
+    <section id="boshlash">
+      <h2>Tez boshlash</h2>
+      <p class="section-hint">Loyihani noldan ishga tushirish — uch qadam.</p>
+
+      <div class="steps">
+        <div class="step">
+          <h3>Paketlarni o'rnatish</h3>
+          <p>Node.js 18 yoki undan yuqori versiyasi kerak.</p>
+          <div class="code"><pre>npm install</pre></div>
+        </div>
+
+        <div class="step">
+          <h3><code>.env</code> faylini tayyorlash</h3>
+          <p>Namunadan nusxa oling va o'z kalitlaringizni yozing. <code>.env</code> git'ga hech qachon qo'shilmaydi.</p>
+          <div class="code"><pre>cp .env.example .env</pre></div>
+        </div>
+
+        <div class="step">
+          <h3>Serverni ishga tushirish</h3>
+          <p><code>dev</code> rejimida nodemon o'zgarishlarni kuzatib serverni avtomatik qayta yuklaydi.</p>
+          <div class="code"><pre>npm run dev     # ishlab chiqish rejimi (nodemon)
+npm start       # oddiy ishga tushirish</pre></div>
+          <p>Terminalda <code>MongoDB connected</code> chiqsa, hammasi joyida. Shu hujjat sahifasi <code><span class="base">http://localhost:3002</span>/</code> manzilida ochiladi.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= UMUMIY ================= -->
+    <section id="umumiy">
+      <h2>Umumiy qoidalar</h2>
+      <p class="section-hint">Barcha endpointlarga tegishli formatlar va cheklovlar.</p>
+
       <h3>Javob formati</h3>
-      <p>Barcha javoblar JSON. Muvaffaqiyat:</p>
-<pre><code>{ "success": true, "data": { ... } }</code></pre>
-      <p>Xato:</p>
-<pre><code>{ "success": false, "message": "Xato tavsifi", "details": [ ... ] }</code></pre>
+      <p>Javoblar doim JSON va doim <code>success</code> maydoniga ega bo'ladi.</p>
+      <div class="code"><pre>// muvaffaqiyat
+{ "success": true, "data": { ... } }
+
+// ro'yxat — qo'shimcha meta bilan
+{ "success": true, "data": [ ... ], "meta": { "page": 1, "limit": 20, "total": 42, "pages": 3 } }
+
+// xatolik
+{ "success": false, "message": "Xato tavsifi", "details": [ { "field": "title", "message": "..." } ] }</pre></div>
+      <p><code>details</code> faqat validatsiya xatolarida qo'shiladi, shuning uchun frontendda uni ixtiyoriy deb hisoblang.</p>
+
+      <h3>So'rov turi</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Amal</th><th>Content-Type</th><th>Izoh</th></tr></thead>
+          <tbody>
+            <tr><td>Yaratish / yangilash</td><td><code>multipart/form-data</code></td><td>Fayl yuborish imkoni uchun</td></tr>
+            <tr><td>O'qish / o'chirish</td><td>—</td><td>Body kerak emas</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note warn">
+        <span class="ico">⚠️</span>
+        <div>
+          Faqat matnni yangilamoqchi bo'lsangiz JSON ham ishlaydi (<code>express.json()</code> yoqilgan), lekin
+          <b>rasm bilan birga</b> yuborishning yagona yo'li — <code>multipart/form-data</code>.
+        </div>
+      </div>
+
+      <h3>Cheklovlar</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Maydon</th><th>Cheklov</th></tr></thead>
+          <tbody>
+            <tr><td><code>title</code></td><td>1–120 belgi · bo'sh bo'lmasligi kerak (bosh va oxirgi probellar kesiladi)</td></tr>
+            <tr><td><code>description</code></td><td>1–2000 belgi</td></tr>
+            <tr><td><code>image</code></td><td>maksimal 5 MB · <code>jpeg</code>, <code>png</code>, <code>webp</code>, <code>gif</code> · bir so'rovda 1 ta fayl</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>CORS va autentifikatsiya</h3>
+      <p>
+        CORS barcha manbalar uchun ochiq, shuning uchun frontendni istalgan portdan ulash mumkin.
+        Autentifikatsiya yo'q — bu o'quv loyihasi, ochiq internetga chiqarishdan oldin himoya qo'shish kerak.
+      </p>
     </section>
 
-    <section>
+    <!-- ================= MODEL ================= -->
+    <section id="model">
       <h2>Post modeli</h2>
-      <table>
-        <thead>
-          <tr><th>Maydon</th><th>Turi</th><th>Tavsif</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>id</code></td><td>string</td><td>MongoDB ObjectId</td></tr>
-          <tr><td><code>title</code></td><td>string</td><td>Sarlavha (1-120 belgi)</td></tr>
-          <tr><td><code>description</code></td><td>string</td><td>Tavsif (1-2000 belgi)</td></tr>
-          <tr><td><code>imageUrl</code></td><td>string</td><td>Cloudinary'dagi rasmga to'liq URL</td></tr>
-          <tr><td><code>imagePublicId</code></td><td>string</td><td>Cloudinary public ID (rasmni o'chirish uchun)</td></tr>
-          <tr><td><code>createdAt</code></td><td>string (ISO)</td><td>Yaratilgan vaqti</td></tr>
-          <tr><td><code>updatedAt</code></td><td>string (ISO)</td><td>Oxirgi o'zgarish vaqti</td></tr>
-        </tbody>
-      </table>
+      <p class="section-hint">Server qaytaradigan ob'ekt. <code>_id</code> va <code>__v</code> javobda ko'rinmaydi — ular <code>id</code> ga aylantirilgan.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Maydon</th><th>Turi</th><th>Tavsif</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>string</td><td>MongoDB ObjectId — 24 ta hex belgi</td></tr>
+            <tr><td><code>title</code></td><td>string</td><td>Sarlavha</td></tr>
+            <tr><td><code>description</code></td><td>string</td><td>Tavsif</td></tr>
+            <tr><td><code>imageUrl</code></td><td>string</td><td>Cloudinary'dagi rasmning to'liq HTTPS havolasi</td></tr>
+            <tr><td><code>imagePublicId</code></td><td>string</td><td>Cloudinary ichki identifikatori — rasmni o'chirishda ishlatiladi</td></tr>
+            <tr><td><code>createdAt</code></td><td>string (ISO)</td><td>Yaratilgan vaqti</td></tr>
+            <tr><td><code>updatedAt</code></td><td>string (ISO)</td><td>Oxirgi o'zgargan vaqti</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code"><pre>{
+  "id": "6a9fad770464647a683617f9",
+  "title": "Go — sodda va tez server tili",
+  "description": "Google tomonidan yaratilgan, kompilyatsiya qilinadigan til...",
+  "imageUrl": "https://res.cloudinary.com/demo/image/upload/v1788782360/back-lesson/abc123.png",
+  "imagePublicId": "back-lesson/abc123",
+  "createdAt": "2026-09-08T06:41:59.412Z",
+  "updatedAt": "2026-09-08T06:41:59.412Z"
+}</pre></div>
     </section>
 
-    <section>
-      <h2>Endpoint'lar</h2>
+    <!-- ================= ENDPOINTLAR ================= -->
+    <section id="endpointlar">
+      <h2>Endpointlar</h2>
+      <p class="section-hint">Oltita endpoint. Har birida jonli sinov paneli bor.</p>
 
-      <div class="endpoint">
-        <div class="endpoint-header">
+      <!-- ---- GET /api/posts ---- -->
+      <div class="endpoint" id="list">
+        <div class="endpoint-head">
+          <span class="method get">GET</span>
+          <span class="path">/api/posts</span>
+        </div>
+        <p class="desc">Postlar ro'yxatini qaytaradi — eng yangisi birinchi (<code>createdAt</code> bo'yicha kamayish tartibida), sahifalash bilan.</p>
+
+        <h3>Query parametrlari</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Parametr</th><th>Default</th><th>Tavsif</th></tr></thead>
+            <tbody>
+              <tr><td><code>page</code> <span class="tag opt">ixtiyoriy</span></td><td>1</td><td>Sahifa raqami, 1 dan boshlanadi</td></tr>
+              <tr><td><code>limit</code> <span class="tag opt">ixtiyoriy</span></td><td>20</td><td>Sahifadagi yozuvlar soni, maksimal <b>100</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="color: var(--muted)">Noto'g'ri qiymatlar (masalan <code>limit=999</code> yoki <code>page=-3</code>) xato bermaydi — ular ruxsat etilgan oraliqqa siqiladi.</p>
+
+        <div class="tabs">
+          <button class="active" data-pane="list-curl">cURL</button>
+          <button data-pane="list-fetch">fetch</button>
+          <button data-pane="list-axios">axios</button>
+        </div>
+        <div class="pane active" id="list-curl">
+          <div class="code"><pre>curl "<span class="base">http://localhost:3002</span>/api/posts?page=1&limit=10"</pre></div>
+        </div>
+        <div class="pane" id="list-fetch">
+          <div class="code"><pre>const res = await fetch('<span class="base">http://localhost:3002</span>/api/posts?page=1&limit=10');
+const { data, meta } = await res.json();
+
+console.log(meta.total, 'ta post');
+data.forEach(post =&gt; console.log(post.title));</pre></div>
+        </div>
+        <div class="pane" id="list-axios">
+          <div class="code"><pre>const { data } = await axios.get('<span class="base">http://localhost:3002</span>/api/posts', {
+  params: { page: 1, limit: 10 },
+});
+
+console.log(data.data, data.meta);</pre></div>
+        </div>
+
+        <h3>Javob — <code>200 OK</code></h3>
+        <div class="code"><pre>{
+  "success": true,
+  "data": [ { "id": "...", "title": "...", "imageUrl": "...", ... } ],
+  "meta": { "page": 1, "limit": 10, "total": 20, "pages": 2 }
+}</pre></div>
+
+        <div class="tryit" data-method="GET" data-path="/api/posts">
+          <button class="tryit-toggle" type="button"><span class="arrow">▶</span> Sinab ko'rish</button>
+          <div class="tryit-body">
+            <div class="fields">
+              <div class="field"><label>page</label><input data-in="query" data-name="page" placeholder="1" /></div>
+              <div class="field"><label>limit</label><input data-in="query" data-name="limit" placeholder="20" /></div>
+            </div>
+            <div class="tryit-actions">
+              <button class="btn tryit-send" type="button">Yuborish</button>
+              <span class="resp-meta"></span>
+            </div>
+            <pre class="tryit-out"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- GET /api/posts/:id ---- -->
+      <div class="endpoint" id="getone">
+        <div class="endpoint-head">
+          <span class="method get">GET</span>
+          <span class="path">/api/posts/:id</span>
+        </div>
+        <p class="desc">Bitta postni <code>id</code> bo'yicha qaytaradi.</p>
+
+        <div class="tabs">
+          <button class="active" data-pane="one-curl">cURL</button>
+          <button data-pane="one-fetch">fetch</button>
+        </div>
+        <div class="pane active" id="one-curl">
+          <div class="code"><pre>curl <span class="base">http://localhost:3002</span>/api/posts/6a9fad770464647a683617f9</pre></div>
+        </div>
+        <div class="pane" id="one-fetch">
+          <div class="code"><pre>const res = await fetch(`<span class="base">http://localhost:3002</span>/api/posts/${id}`);
+
+if (res.status === 404) return null;         // post topilmadi
+const { data } = await res.json();
+return data;</pre></div>
+        </div>
+
+        <h3>Mumkin bo'lgan javoblar</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Status</th><th>Sabab</th></tr></thead>
+            <tbody>
+              <tr><td><code>200</code></td><td>Post topildi</td></tr>
+              <tr><td><code>400</code></td><td><code>id</code> formati ObjectId emas — <code>Invalid _id: xyz</code></td></tr>
+              <tr><td><code>404</code></td><td>Bunday <code>id</code> li post yo'q — <code>Post not found</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tryit" data-method="GET" data-path="/api/posts/:id">
+          <button class="tryit-toggle" type="button"><span class="arrow">▶</span> Sinab ko'rish</button>
+          <div class="tryit-body">
+            <div class="fields">
+              <div class="field wide"><label>id (majburiy)</label><input data-in="path" data-name="id" placeholder="6a9fad770464647a683617f9" /></div>
+            </div>
+            <div class="tryit-actions">
+              <button class="btn tryit-send" type="button">Yuborish</button>
+              <button class="btn ghost js-pick-id" type="button">Oxirgi postning id sini olish</button>
+              <span class="resp-meta"></span>
+            </div>
+            <pre class="tryit-out"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- POST /api/posts ---- -->
+      <div class="endpoint" id="create">
+        <div class="endpoint-head">
           <span class="method post">POST</span>
           <span class="path">/api/posts</span>
         </div>
-        <p class="description">Yangi post yaratadi. <code>title</code>, <code>description</code> va <code>image</code> uchchalasi ham majburiy.</p>
-        <h3>Body (<code>multipart/form-data</code>)</h3>
-        <table>
-          <thead><tr><th>Maydon</th><th>Turi</th><th>Cheklov</th></tr></thead>
-          <tbody>
-            <tr><td><code>title</code> <span class="label required">required</span></td><td>text</td><td>1-120 belgi</td></tr>
-            <tr><td><code>description</code> <span class="label required">required</span></td><td>text</td><td>1-2000 belgi</td></tr>
-            <tr><td><code>image</code> <span class="label required">required</span></td><td>file</td><td>≤ 5 MB, image/*</td></tr>
-          </tbody>
-        </table>
-        <h3>cURL misol</h3>
-<pre><code>curl -X POST http://localhost:3002/api/posts \
+        <p class="desc">Yangi post yaratadi. Uchala maydon ham majburiy — rasmsiz post yaratib bo'lmaydi.</p>
+
+        <h3>Body — <code>multipart/form-data</code></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Maydon</th><th>Turi</th><th>Cheklov</th></tr></thead>
+            <tbody>
+              <tr><td><code>title</code> <span class="tag req">majburiy</span></td><td>text</td><td>1–120 belgi</td></tr>
+              <tr><td><code>description</code> <span class="tag req">majburiy</span></td><td>text</td><td>1–2000 belgi</td></tr>
+              <tr><td><code>image</code> <span class="tag req">majburiy</span></td><td>file</td><td>≤ 5 MB, rasm formati</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tabs">
+          <button class="active" data-pane="create-curl">cURL</button>
+          <button data-pane="create-fetch">fetch</button>
+          <button data-pane="create-axios">axios</button>
+        </div>
+        <div class="pane active" id="create-curl">
+          <div class="code"><pre>curl -X POST <span class="base">http://localhost:3002</span>/api/posts \
   -F "title=Salom dunyo" \
   -F "description=Bu mening birinchi postim" \
-  -F "image=@./rasm.jpg"</code></pre>
-        <h3>Muvaffaqiyatli javob — <code>201 Created</code></h3>
-<pre><code>{
-  "success": true,
-  "data": {
-    "id": "66f5a1b2c3d4e5f6a7b8c9d0",
-    "title": "Salom dunyo",
-    "description": "Bu mening birinchi postim",
-    "imageUrl": "https://res.cloudinary.com/.../rasm.jpg",
-    "imagePublicId": "back-lesson/abc123",
-    "createdAt": "2026-05-26T10:30:00.000Z",
-    "updatedAt": "2026-05-26T10:30:00.000Z"
-  }
-}</code></pre>
-      </div>
-
-      <div class="endpoint">
-        <div class="endpoint-header">
-          <span class="method get">GET</span>
-          <span class="path">/api/posts</span>
+  -F "image=@./rasm.png"</pre></div>
         </div>
-        <p class="description">Barcha postlarni qaytaradi. Sahifalash (pagination) bilan.</p>
-        <h3>Query parametrlari</h3>
-        <table>
-          <thead><tr><th>Parametr</th><th>Default</th><th>Tavsif</th></tr></thead>
-          <tbody>
-            <tr><td><code>page</code> <span class="label optional">optional</span></td><td>1</td><td>Sahifa raqami</td></tr>
-            <tr><td><code>limit</code> <span class="label optional">optional</span></td><td>20</td><td>Sahifadagi yozuvlar soni (max 100)</td></tr>
-          </tbody>
-        </table>
-        <h3>cURL misol</h3>
-<pre><code>curl http://localhost:3002/api/posts?page=1&limit=10</code></pre>
-        <h3>Javob — <code>200 OK</code></h3>
-<pre><code>{
-  "success": true,
-  "data": [ { "id": "...", "title": "...", ... }, ... ],
-  "meta": { "page": 1, "limit": 10, "total": 42, "pages": 5 }
-}</code></pre>
-      </div>
+        <div class="pane" id="create-fetch">
+          <div class="code"><pre>const form = new FormData();
+form.append('title', 'Salom dunyo');
+form.append('description', 'Bu mening birinchi postim');
+form.append('image', fileInput.files[0]);
 
-      <div class="endpoint">
-        <div class="endpoint-header">
-          <span class="method get">GET</span>
-          <span class="path">/api/posts/:id</span>
-        </div>
-        <p class="description">Bitta postni id bo'yicha qaytaradi.</p>
-        <h3>cURL misol</h3>
-<pre><code>curl http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0</code></pre>
-        <h3>Mumkin bo'lgan javoblar</h3>
-        <ul>
-          <li><code>200 OK</code> — post topildi</li>
-          <li><code>400</code> — id formati noto'g'ri (CastError)</li>
-          <li><code>404</code> — post topilmadi</li>
-        </ul>
-      </div>
-
-      <div class="endpoint">
-        <div class="endpoint-header">
-          <span class="method put">PUT</span>
-          <span class="method put">PATCH</span>
-          <span class="path">/api/posts/:id</span>
-        </div>
-        <p class="description">Postni yangilaydi (<code>PUT</code> va <code>PATCH</code> ikkalasi ham qo'llab-quvvatlanadi, qisman yangilash uchun <code>PATCH</code> tavsiya etiladi). <code>title</code>, <code>description</code> va <code>image</code> uchchalasi ham ixtiyoriy — kerakligini yuboring.</p>
-        <h3>Body (<code>multipart/form-data</code>)</h3>
-        <table>
-          <thead><tr><th>Maydon</th><th>Turi</th><th>Cheklov</th></tr></thead>
-          <tbody>
-            <tr><td><code>title</code> <span class="label optional">optional</span></td><td>text</td><td>1-120 belgi</td></tr>
-            <tr><td><code>description</code> <span class="label optional">optional</span></td><td>text</td><td>1-2000 belgi</td></tr>
-            <tr><td><code>image</code> <span class="label optional">optional</span></td><td>file</td><td>≤ 5 MB, image/*</td></tr>
-          </tbody>
-        </table>
-        <p>Yangi rasm yuklansa, eski rasm Cloudinary'dan avtomatik o'chiriladi.</p>
-        <h3>cURL misol — faqat title o'zgartirish</h3>
-<pre><code>curl -X PUT http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0 \
-  -F "title=Yangi sarlavha"</code></pre>
-        <h3>cURL misol — description o'zgartirish</h3>
-<pre><code>curl -X PUT http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0 \
-  -F "description=Yangilangan tavsif"</code></pre>
-        <h3>cURL misol — barchasi bilan birga</h3>
-<pre><code>curl -X PUT http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0 \
-  -F "title=Yangi sarlavha" \
-  -F "description=Yangilangan tavsif" \
-  -F "image=@./yangi-rasm.png"</code></pre>
-      </div>
-
-      <div class="endpoint">
-        <div class="endpoint-header">
-          <span class="method delete">DELETE</span>
-          <span class="path">/api/posts/:id</span>
-        </div>
-        <p class="description">Postni va u bilan bog'liq rasmni Cloudinary'dan birga o'chiradi.</p>
-        <h3>cURL misol</h3>
-<pre><code>curl -X DELETE http://localhost:3002/api/posts/66f5a1b2c3d4e5f6a7b8c9d0</code></pre>
-        <h3>Javob — <code>200 OK</code></h3>
-<pre><code>{ "success": true, "data": { "id": "66f5a1b2c3d4e5f6a7b8c9d0" } }</code></pre>
-      </div>
-
-      <div class="endpoint">
-        <div class="endpoint-header">
-          <span class="method get">GET</span>
-          <span class="path">/health</span>
-        </div>
-        <p class="description">Service ishlayotganini tekshirish (uptime monitoring uchun).</p>
-<pre><code>{ "status": "ok", "uptime": 123.45 }</code></pre>
-      </div>
-    </section>
-
-    <section>
-      <h2>Xato kodlari</h2>
-      <table>
-        <thead><tr><th>Status</th><th>Sabab</th></tr></thead>
-        <tbody>
-          <tr><td><code>400</code></td><td>title bo'sh / 120 belgidan oshgan, description bo'sh / 2000 belgidan oshgan, rasm formati noto'g'ri, id formati buzilgan</td></tr>
-          <tr><td><code>400</code> (LIMIT_FILE_SIZE)</td><td>Rasm 5 MB'dan kattaroq</td></tr>
-          <tr><td><code>404</code></td><td>Post topilmadi yoki marshrut yo'q</td></tr>
-          <tr><td><code>500</code></td><td>Server xatosi (Cloudinary upload muvaffaqiyatsiz, DB muammosi va h.k.)</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>JavaScript misoli (fetch + FormData)</h2>
-<pre><code>const formData = new FormData();
-formData.append('title', 'Mening postim');
-formData.append('description', 'Postning to\'liq tavsifi');
-formData.append('image', fileInput.files[0]);
-
-const res = await fetch('http://localhost:3002/api/posts', {
+const res = await fetch('<span class="base">http://localhost:3002</span>/api/posts', {
   method: 'POST',
-  body: formData,
+  body: form,          // Content-Type ni QO'LDA qo'ymang!
 });
 
 const json = await res.json();
-console.log(json);</code></pre>
-      <p style="color: var(--muted);">
-        <strong>Eslatma:</strong> <code>fetch</code> bilan <code>FormData</code> yuborganingizda
-        <code>Content-Type</code> header'ini qo'lda qo'yMANG — brauzer uni boundary bilan birga
-        avtomatik o'rnatadi.
-      </p>
+if (!res.ok) throw new Error(json.message);
+console.log('yaratildi:', json.data.id);</pre></div>
+        </div>
+        <div class="pane" id="create-axios">
+          <div class="code"><pre>const form = new FormData();
+form.append('title', 'Salom dunyo');
+form.append('description', 'Bu mening birinchi postim');
+form.append('image', fileInput.files[0]);
+
+const { data } = await axios.post('<span class="base">http://localhost:3002</span>/api/posts', form);
+console.log(data.data.id);</pre></div>
+        </div>
+
+        <div class="note">
+          <span class="ico">💡</span>
+          <div>
+            <code>FormData</code> yuborayotganda <code>Content-Type</code> header'ini <b>qo'lda yozmang</b>. Brauzer
+            uni <code>boundary</code> bilan birga o'zi qo'yadi; qo'lda yozsangiz multer faylni topa olmaydi.
+          </div>
+        </div>
+
+        <h3>Javob — <code>201 Created</code></h3>
+        <div class="code"><pre>{
+  "success": true,
+  "data": {
+    "id": "6a9fad770464647a683617f9",
+    "title": "Salom dunyo",
+    "description": "Bu mening birinchi postim",
+    "imageUrl": "https://res.cloudinary.com/demo/image/upload/v1788782360/back-lesson/abc123.png",
+    "imagePublicId": "back-lesson/abc123",
+    "createdAt": "2026-09-08T06:41:59.412Z",
+    "updatedAt": "2026-09-08T06:41:59.412Z"
+  }
+}</pre></div>
+        <p style="color: var(--muted)">
+          Agar rasm Cloudinary'ga yuklanib bo'lgach bazaga yozishda xato chiqsa, server yuklangan rasmni
+          avtomatik o'chiradi — “yetim” fayllar qolmaydi.
+        </p>
+
+        <div class="tryit" data-method="POST" data-path="/api/posts">
+          <button class="tryit-toggle" type="button"><span class="arrow">▶</span> Sinab ko'rish</button>
+          <div class="tryit-body">
+            <div class="fields">
+              <div class="field wide"><label>title</label><input data-in="form" data-name="title" placeholder="Salom dunyo" /></div>
+              <div class="field wide"><label>description</label><textarea data-in="form" data-name="description" placeholder="Postning to'liq tavsifi"></textarea></div>
+              <div class="field wide"><label>image (fayl tanlang)</label><input type="file" accept="image/*" data-in="file" data-name="image" /></div>
+            </div>
+            <div class="tryit-actions">
+              <button class="btn tryit-send" type="button">Yuborish</button>
+              <span class="resp-meta"></span>
+            </div>
+            <pre class="tryit-out"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- PUT / PATCH ---- -->
+      <div class="endpoint" id="update">
+        <div class="endpoint-head">
+          <span class="method put">PUT</span>
+          <span class="method patch">PATCH</span>
+          <span class="path">/api/posts/:id</span>
+        </div>
+        <p class="desc">
+          Postni yangilaydi. Ikkala metod bir xil ishlaydi va <b>qisman yangilashni</b> qo'llab-quvvatlaydi —
+          faqat o'zgartirmoqchi bo'lgan maydonlarni yuborish kifoya.
+        </p>
+
+        <h3>Body — <code>multipart/form-data</code></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Maydon</th><th>Turi</th><th>Izoh</th></tr></thead>
+            <tbody>
+              <tr><td><code>title</code> <span class="tag opt">ixtiyoriy</span></td><td>text</td><td>Yuborilmasa — eskisi qoladi</td></tr>
+              <tr><td><code>description</code> <span class="tag opt">ixtiyoriy</span></td><td>text</td><td>Yuborilmasa — eskisi qoladi</td></tr>
+              <tr><td><code>image</code> <span class="tag opt">ixtiyoriy</span></td><td>file</td><td>Yangi rasm yuklansa, eskisi Cloudinary'dan o'chiriladi</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tabs">
+          <button class="active" data-pane="upd-curl">cURL</button>
+          <button data-pane="upd-fetch">fetch</button>
+        </div>
+        <div class="pane active" id="upd-curl">
+          <div class="code"><pre># faqat sarlavhani o'zgartirish
+curl -X PATCH <span class="base">http://localhost:3002</span>/api/posts/6a9fad770464647a683617f9 \
+  -F "title=Yangi sarlavha"
+
+# rasmni almashtirish
+curl -X PATCH <span class="base">http://localhost:3002</span>/api/posts/6a9fad770464647a683617f9 \
+  -F "image=@./yangi-rasm.png"</pre></div>
+        </div>
+        <div class="pane" id="upd-fetch">
+          <div class="code"><pre>const form = new FormData();
+form.append('title', 'Yangi sarlavha');
+// o'zgartirilmaydigan maydonlarni umuman qo'shmaymiz
+
+const res = await fetch(`<span class="base">http://localhost:3002</span>/api/posts/${id}`, {
+  method: 'PATCH',
+  body: form,
+});
+
+const json = await res.json();</pre></div>
+        </div>
+
+        <div class="tryit" data-method="PATCH" data-path="/api/posts/:id">
+          <button class="tryit-toggle" type="button"><span class="arrow">▶</span> Sinab ko'rish</button>
+          <div class="tryit-body">
+            <div class="fields">
+              <div class="field wide"><label>id (majburiy)</label><input data-in="path" data-name="id" placeholder="6a9fad770464647a683617f9" /></div>
+              <div class="field wide"><label>title (bo'sh qoldirsangiz o'zgarmaydi)</label><input data-in="form" data-name="title" /></div>
+              <div class="field wide"><label>description (bo'sh qoldirsangiz o'zgarmaydi)</label><textarea data-in="form" data-name="description"></textarea></div>
+              <div class="field wide"><label>image (ixtiyoriy)</label><input type="file" accept="image/*" data-in="file" data-name="image" /></div>
+            </div>
+            <div class="tryit-actions">
+              <button class="btn tryit-send" type="button">Yuborish</button>
+              <button class="btn ghost js-pick-id" type="button">Oxirgi postning id sini olish</button>
+              <span class="resp-meta"></span>
+            </div>
+            <pre class="tryit-out"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- DELETE ---- -->
+      <div class="endpoint" id="remove">
+        <div class="endpoint-head">
+          <span class="method delete">DELETE</span>
+          <span class="path">/api/posts/:id</span>
+        </div>
+        <p class="desc">Postni bazadan, rasmini esa Cloudinary'dan o'chiradi. Amal qaytarilmaydi.</p>
+
+        <div class="code"><pre>curl -X DELETE <span class="base">http://localhost:3002</span>/api/posts/6a9fad770464647a683617f9</pre></div>
+
+        <h3>Javob — <code>200 OK</code></h3>
+        <div class="code"><pre>{ "success": true, "data": { "id": "6a9fad770464647a683617f9" } }</pre></div>
+        <p style="color: var(--muted)">
+          Javobda o'chirilgan postning <code>id</code> si qaytadi — frontendda ro'yxatdan qaysi elementni
+          olib tashlashni aniqlash uchun qulay. Optimistic delete namunasi
+          <a href="#retseptlar">Frontend retseptlari</a> bo'limida.
+        </p>
+
+        <div class="tryit" data-method="DELETE" data-path="/api/posts/:id">
+          <button class="tryit-toggle" type="button"><span class="arrow">▶</span> Sinab ko'rish</button>
+          <div class="tryit-body">
+            <div class="note warn" style="margin-top: 0">
+              <span class="ico">⚠️</span>
+              <div>Bu haqiqiy o'chirish — post ham, rasm ham qaytmaydi.</div>
+            </div>
+            <div class="fields">
+              <div class="field wide"><label>id (majburiy)</label><input data-in="path" data-name="id" placeholder="6a9fad770464647a683617f9" /></div>
+            </div>
+            <div class="tryit-actions">
+              <button class="btn tryit-send" type="button">O'chirish</button>
+              <button class="btn ghost js-pick-id" type="button">Oxirgi postning id sini olish</button>
+              <span class="resp-meta"></span>
+            </div>
+            <pre class="tryit-out"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- HEALTH ---- -->
+      <div class="endpoint" id="health">
+        <div class="endpoint-head">
+          <span class="method get">GET</span>
+          <span class="path">/health</span>
+        </div>
+        <p class="desc">Server tirikligini tekshiradi. Monitoring va deploy tekshiruvlari uchun.</p>
+        <div class="code"><pre>{ "status": "ok", "uptime": 123.45 }</pre></div>
+
+        <div class="tryit" data-method="GET" data-path="/health">
+          <button class="tryit-toggle" type="button"><span class="arrow">▶</span> Sinab ko'rish</button>
+          <div class="tryit-body">
+            <div class="tryit-actions" style="margin-top: 0">
+              <button class="btn tryit-send" type="button">Yuborish</button>
+              <span class="resp-meta"></span>
+            </div>
+            <pre class="tryit-out"></pre>
+          </div>
+        </div>
+      </div>
     </section>
 
-  </div>
+    <!-- ================= XATOLAR ================= -->
+    <section id="xatolar">
+      <h2>Xatolar</h2>
+      <p class="section-hint">Xatolar bir xil formatda qaytadi, shuning uchun frontendda bitta joyda qayta ishlash mumkin.</p>
 
-  <footer>
-    back-lesson API · Node.js + Express + MongoDB + Cloudinary
-  </footer>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>Xabar</th><th>Qachon</th></tr></thead>
+          <tbody>
+            <tr><td><code>400</code></td><td><code>title is required</code></td><td>Yaratishda <code>title</code> yuborilmagan yoki bo'sh</td></tr>
+            <tr><td><code>400</code></td><td><code>title must be at most 120 characters</code></td><td>Sarlavha juda uzun</td></tr>
+            <tr><td><code>400</code></td><td><code>description must be at most 2000 characters</code></td><td>Tavsif juda uzun</td></tr>
+            <tr><td><code>400</code></td><td><code>image file is required (field name: "image")</code></td><td>Yaratishda fayl yuborilmagan yoki maydon nomi boshqa</td></tr>
+            <tr><td><code>400</code></td><td><code>File too large. Max allowed size is 5 MB.</code></td><td>Rasm 5 MB dan katta</td></tr>
+            <tr><td><code>400</code></td><td><code>Unsupported image type: …</code></td><td>PDF, SVG kabi ruxsat etilmagan format</td></tr>
+            <tr><td><code>400</code></td><td><code>Unexpected file field: …</code></td><td>Fayl maydoni <code>image</code> deb nomlanmagan</td></tr>
+            <tr><td><code>400</code></td><td><code>Invalid _id: …</code></td><td><code>id</code> ObjectId formatiga mos emas</td></tr>
+            <tr><td><code>404</code></td><td><code>Post not found</code></td><td>Bunday id li post yo'q (yoki allaqachon o'chirilgan)</td></tr>
+            <tr><td><code>404</code></td><td><code>Route not found: …</code></td><td>Manzil noto'g'ri yozilgan</td></tr>
+            <tr><td><code>500</code></td><td><code>Cloudinary upload failed: …</code></td><td>Cloudinary kalitlari xato yoki internet yo'q</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Frontendda xatoni ushlash</h3>
+      <div class="code"><pre>const res = await fetch(url, options);
+const json = await res.json();
+
+if (!res.ok) {
+  // details bo'lsa — maydon bo'yicha aniq xabarlar
+  const text = json.details
+    ? json.details.map(d =&gt; `${d.field}: ${d.message}`).join('\n')
+    : json.message;
+  throw new Error(text);
+}</pre></div>
+    </section>
+
+    <!-- ================= RETSEPTLAR ================= -->
+    <section id="retseptlar">
+      <h2>Frontend retseptlari</h2>
+      <p class="section-hint">Ushbu API bilan eng ko'p uchraydigan uch ssenariy.</p>
+
+      <h3>1. Ro'yxatni yuklab, ekranga chiqarish</h3>
+      <div class="code"><pre>const BASE = '<span class="base">http://localhost:3002</span>';
+
+async function loadPosts(page = 1) {
+  const res = await fetch(`${BASE}/api/posts?page=${page}&limit=20`);
+  const { data, meta } = await res.json();
+
+  list.innerHTML = data.map(p =&gt; `
+    &lt;article data-id="${p.id}"&gt;
+      &lt;img src="${p.imageUrl}" alt="${p.title}" loading="lazy" /&gt;
+      &lt;h3&gt;${p.title}&lt;/h3&gt;
+      &lt;p&gt;${p.description}&lt;/p&gt;
+      &lt;button class="del"&gt;O'chirish&lt;/button&gt;
+    &lt;/article&gt;
+  `).join('');
+
+  return meta;   // { page, limit, total, pages }
+}</pre></div>
+
+      <h3>2. Optimistic delete — darhol o'chirib, xatoda qaytarish</h3>
+      <p style="color: var(--muted)">
+        Elementni javobni kutmasdan ro'yxatdan olib tashlaymiz; so'rov muvaffaqiyatsiz bo'lsa eski holatni tiklaymiz.
+      </p>
+      <div class="code"><pre>async function deletePost(id) {
+  const snapshot = posts;                            // 1. eski holatni saqlaymiz
+  posts = posts.filter(p =&gt; p.id !== id);            // 2. darhol UI dan olib tashlaymiz
+  render(posts);
+
+  try {
+    const res = await fetch(`${BASE}/api/posts/${id}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message);
+    // muvaffaqiyat: json.data.id — o'chirilgan post id si
+  } catch (err) {
+    posts = snapshot;                                // 3. xato bo'lsa qaytaramiz
+    render(posts);
+    showError(err.message);
+  }
+}</pre></div>
+      <div class="note">
+        <span class="ico">💡</span>
+        <div>
+          Post allaqachon o'chirilgan bo'lsa server <code>404</code> qaytaradi. Optimistic UI da buni ham
+          <b>muvaffaqiyat</b> deb hisoblash mumkin — natija baribir bir xil: bunday post endi yo'q.
+        </div>
+      </div>
+
+      <h3>3. Rasm bilan post yaratish va ro'yxatga qo'shish</h3>
+      <div class="code"><pre>async function createPost(form) {         // form — &lt;form&gt; elementi
+  const body = new FormData(form);        // input name lari: title, description, image
+
+  const res = await fetch(`${BASE}/api/posts`, { method: 'POST', body });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message);
+
+  posts = [json.data, ...posts];          // yangi post ro'yxat boshiga
+  render(posts);
+  form.reset();
+}</pre></div>
+    </section>
+
+    <!-- ================= ENV ================= -->
+    <section id="env">
+      <h2>Muhit o'zgaruvchilari</h2>
+      <p class="section-hint"><code>.env</code> fayli loyiha ildizida turadi va git'ga qo'shilmaydi. Namuna: <code>.env.example</code>.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>O'zgaruvchi</th><th>Majburiy</th><th>Default</th><th>Tavsif</th></tr></thead>
+          <tbody>
+            <tr><td><code>PORT</code></td><td>yo'q</td><td><code>3002</code></td><td>Server tinglaydigan port</td></tr>
+            <tr><td><code>HOST</code></td><td>yo'q</td><td><code>0.0.0.0</code></td><td>Tinglash manzili — <code>0.0.0.0</code> lokal tarmoqdan ham ochiladi</td></tr>
+            <tr><td><code>NODE_ENV</code></td><td>yo'q</td><td>—</td><td><code>test</code> bo'lsa morgan loglari o'chadi</td></tr>
+            <tr><td><code>MONGO_URI</code></td><td><b>ha</b></td><td>—</td><td>MongoDB ulanish satri (Atlas yoki lokal)</td></tr>
+            <tr><td><code>CLOUDINARY_CLOUD_NAME</code></td><td><b>ha</b></td><td>—</td><td>Cloudinary hisobingiz nomi</td></tr>
+            <tr><td><code>CLOUDINARY_API_KEY</code></td><td><b>ha</b></td><td>—</td><td>Cloudinary API kaliti</td></tr>
+            <tr><td><code>CLOUDINARY_API_SECRET</code></td><td><b>ha</b></td><td>—</td><td>Cloudinary maxfiy kaliti</td></tr>
+            <tr><td><code>CLOUDINARY_FOLDER</code></td><td>yo'q</td><td><code>back-lesson</code></td><td>Rasmlar saqlanadigan papka</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <span class="ico">🔐</span>
+        <div>
+          <code>MONGO_URI</code> va <code>CLOUDINARY_API_SECRET</code> — maxfiy ma'lumot. Ular bir marta ochiq
+          joyga (screenshot, chat, commit) tushsa, kalitlarni almashtirish kerak.
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TUZILISH ================= -->
+    <section id="tuzilish">
+      <h2>Loyiha tuzilishi</h2>
+      <p class="section-hint">Har bir qatlam bitta vazifani bajaradi — kod qayerdaligini topish oson bo'lsin uchun.</p>
+
+      <div class="code"><pre>back-lesson/
+├── server.js                    # kirish nuqtasi: .env, DB ulanish, listen
+├── public/
+│   └── index.html               # shu hujjat sahifasi ("/" da ochiladi)
+└── src/
+    ├── app.js                   # Express ilova: middleware'lar, marshrutlar
+    ├── config/
+    │   ├── db.js                # MongoDB ulanishi
+    │   └── cloudinary.js        # Cloudinary SDK sozlamasi
+    ├── routes/
+    │   └── post.routes.js       # /api/posts marshrutlari
+    ├── controllers/
+    │   └── post.controller.js   # CRUD mantiq va validatsiya
+    ├── services/
+    │   └── cloudinary.service.js# rasm yuklash / o'chirish
+    ├── models/
+    │   └── post.model.js        # Mongoose sxemasi
+    ├── middlewares/
+    │   ├── upload.js            # multer: format va hajm nazorati
+    │   └── error.js             # 404 va markazlashgan xato ishlovchi
+    └── utils/
+        └── ApiError.js          # statusCode bilan ishlaydigan Error klassi</pre></div>
+
+      <h3>So'rov qanday yo'l bosadi</h3>
+      <div class="code"><pre>So'rov
+  → app.js         (cors, json, morgan, static)
+  → post.routes.js (metod va manzil bo'yicha yo'naltirish)
+  → upload.js      (multer: faylni xotiraga oladi, formatni tekshiradi)
+  → post.controller.js (validatsiya → cloudinary.service → Mongoose model)
+  → error.js       (xato bo'lsa — bir xil JSON formatga keltiradi)
+Javob</pre></div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  back-lesson API · Node.js + Express + MongoDB + Cloudinary
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'back-lesson:baseUrl';
+  var baseInput = document.getElementById('baseUrl');
+  var healthDot = document.getElementById('healthDot');
+  var healthText = document.getElementById('healthText');
+  var lastId = null;
+
+  /* ---------- Base URL ---------- */
+
+  function normalize(value) {
+    return String(value || '').trim().replace(/\/+$/, '');
+  }
+
+  function base() {
+    return normalize(baseInput.value) || window.location.origin;
+  }
+
+  function applyBase() {
+    var value = base();
+    var spans = document.querySelectorAll('.base');
+    for (var i = 0; i < spans.length; i++) spans[i].textContent = value;
+    try { localStorage.setItem(STORE_KEY, value); } catch (e) { /* private mode */ }
+  }
+
+  var stored = null;
+  try { stored = localStorage.getItem(STORE_KEY); } catch (e) { /* ignore */ }
+  baseInput.value = stored || window.location.origin;
+  applyBase();
+
+  var baseTimer;
+  baseInput.addEventListener('input', function () {
+    applyBase();
+    clearTimeout(baseTimer);
+    baseTimer = setTimeout(checkHealth, 600);
+  });
+
+  /* ---------- Health ---------- */
+
+  function checkHealth() {
+    healthDot.className = 'dot';
+    healthText.textContent = 'tekshirilmoqda…';
+
+    fetch(base() + '/health', { cache: 'no-store' })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function (json) {
+        healthDot.className = 'dot on';
+        healthText.textContent = 'ishlayapti · uptime ' + Math.round(json.uptime || 0) + 's';
+      })
+      .catch(function () {
+        healthDot.className = 'dot off';
+        healthText.textContent = 'server javob bermayapti';
+      });
+  }
+
+  checkHealth();
+
+  /* ---------- Copy tugmalari ---------- */
+
+  var blocks = document.querySelectorAll('.code');
+  for (var b = 0; b < blocks.length; b++) {
+    (function (block) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy';
+      btn.textContent = 'nusxa';
+      btn.addEventListener('click', function () {
+        var text = block.querySelector('pre').textContent;
+        var done = function () {
+          btn.textContent = 'nusxalandi';
+          btn.classList.add('done');
+          setTimeout(function () {
+            btn.textContent = 'nusxa';
+            btn.classList.remove('done');
+          }, 1400);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, fallback);
+        } else {
+          fallback();
+        }
+
+        function fallback() {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ }
+          document.body.removeChild(ta);
+        }
+      });
+      block.appendChild(btn);
+    })(blocks[b]);
+  }
+
+  /* ---------- Tablar ---------- */
+
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest('.tabs button');
+    if (!btn) return;
+
+    var tabs = btn.parentNode;
+    var siblings = tabs.querySelectorAll('button');
+    for (var i = 0; i < siblings.length; i++) siblings[i].classList.remove('active');
+    btn.classList.add('active');
+
+    var scope = tabs.parentNode;
+    var panes = scope.querySelectorAll('.pane');
+    for (var j = 0; j < panes.length; j++) panes[j].classList.remove('active');
+
+    var target = document.getElementById(btn.getAttribute('data-pane'));
+    if (target) target.classList.add('active');
+  });
+
+  /* ---------- Sinab ko'rish ---------- */
+
+  function fillIds(id, force) {
+    if (!id) return;
+    lastId = id;
+    var inputs = document.querySelectorAll('input[data-in="path"][data-name="id"]');
+    for (var i = 0; i < inputs.length; i++) {
+      if (force || !inputs[i].value.trim()) inputs[i].value = id;
+    }
+  }
+
+  function harvestId(json) {
+    if (!json || !json.data) return null;
+    if (Array.isArray(json.data)) return json.data.length ? json.data[0].id : null;
+    return json.data.id || null;
+  }
+
+  function show(out, meta, status, ms, text) {
+    var cls = status >= 200 && status < 300 ? 'ok' : 'bad';
+    meta.innerHTML = '<span class="' + cls + '">' + status + '</span> · ' + ms + ' ms';
+    out.textContent = text;
+    out.classList.add('show');
+  }
+
+  function run(tryit) {
+    var method = tryit.getAttribute('data-method');
+    var path = tryit.getAttribute('data-path');
+    var out = tryit.querySelector('.tryit-out');
+    var meta = tryit.querySelector('.resp-meta');
+    var sendBtn = tryit.querySelector('.tryit-send');
+
+    var query = [];
+    var form = new FormData();
+    var hasBody = false;
+    var missing = null;
+
+    var inputs = tryit.querySelectorAll('[data-in]');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      var kind = el.getAttribute('data-in');
+      var name = el.getAttribute('data-name');
+      var value = (el.value || '').trim();
+
+      if (kind === 'path') {
+        if (!value) { missing = name; break; }
+        path = path.replace(':' + name, encodeURIComponent(value));
+      } else if (kind === 'query') {
+        if (value) query.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
+      } else if (kind === 'form') {
+        if (value) { form.append(name, value); hasBody = true; }
+      } else if (kind === 'file') {
+        if (el.files && el.files[0]) { form.append(name, el.files[0]); hasBody = true; }
+      }
+    }
+
+    if (missing) {
+      meta.innerHTML = '<span class="bad">' + missing + ' kiritilmagan</span>';
+      out.classList.remove('show');
+      return;
+    }
+
+    var url = base() + path + (query.length ? '?' + query.join('&') : '');
+    var started = Date.now();
+    var status = 0;
+
+    sendBtn.disabled = true;
+    meta.textContent = 'yuborilmoqda…';
+
+    fetch(url, { method: method, body: hasBody ? form : undefined })
+      .then(function (res) {
+        status = res.status;
+        return res.text();
+      })
+      .then(function (text) {
+        var ms = Date.now() - started;
+        var parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { /* JSON emas */ }
+
+        show(out, meta, status, ms, parsed ? JSON.stringify(parsed, null, 2) : text);
+
+        if (parsed) {
+          var id = harvestId(parsed);
+          fillIds(id, method === 'POST' && status === 201);
+        }
+      })
+      .catch(function (err) {
+        var ms = Date.now() - started;
+        meta.innerHTML = '<span class="bad">ulanmadi</span> · ' + ms + ' ms';
+        out.textContent =
+          'So\'rov yuborilmadi: ' + err.message +
+          '\n\nTekshiring:\n' +
+          '  • server ishlayaptimi (npm run dev)\n' +
+          '  • yuqoridagi Base URL to\'g\'rimi (' + base() + ')';
+        out.classList.add('show');
+      })
+      .then(function () {
+        sendBtn.disabled = false;
+      });
+  }
+
+  document.addEventListener('click', function (event) {
+    var toggle = event.target.closest('.tryit-toggle');
+    if (toggle) {
+      toggle.parentNode.classList.toggle('open');
+      return;
+    }
+
+    var pick = event.target.closest('.js-pick-id');
+    if (pick) {
+      var input = pick.closest('.tryit-body').querySelector('input[data-in="path"][data-name="id"]');
+      var metaEl = pick.closest('.tryit-actions').querySelector('.resp-meta');
+
+      if (lastId) {
+        input.value = lastId;
+        metaEl.textContent = '';
+        return;
+      }
+
+      metaEl.textContent = 'yuklanmoqda…';
+      fetch(base() + '/api/posts?limit=1')
+        .then(function (res) { return res.json(); })
+        .then(function (json) {
+          var id = harvestId(json);
+          if (id) {
+            fillIds(id, true);
+            metaEl.textContent = '';
+          } else {
+            metaEl.innerHTML = '<span class="bad">bazada post yo\'q</span>';
+          }
+        })
+        .catch(function () {
+          metaEl.innerHTML = '<span class="bad">ro\'yxatni olib bo\'lmadi</span>';
+        });
+      return;
+    }
+
+    var send = event.target.closest('.tryit-send');
+    if (send) run(send.closest('.tryit'));
+  });
+
+  /* ---------- Sidebar scrollspy ---------- */
+
+  var links = document.querySelectorAll('.sidebar a');
+  var targets = [];
+  for (var l = 0; l < links.length; l++) {
+    var el = document.getElementById(links[l].getAttribute('href').slice(1));
+    if (el) targets.push({ link: links[l], el: el });
+  }
+
+  var ticking = false;
+  function spy() {
+    var current = null;
+    for (var i = 0; i < targets.length; i++) {
+      if (targets[i].el.getBoundingClientRect().top <= 120) current = targets[i];
+    }
+    for (var j = 0; j < targets.length; j++) {
+      targets[j].link.classList.toggle('active', targets[j] === current);
+    }
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(spy);
+  }, { passive: true });
+
+  spy();
+})();
+</script>
+
 </body>
 </html>
